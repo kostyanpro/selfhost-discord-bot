@@ -19,20 +19,23 @@
 Для пользователей Windows этот шаг можно пропустить. Если вы используете Linux, выполните следующую команду для установки необходимого пакета:
 
 ```bash 
-sudo apt install python3-venv -y  ```
+sudo apt install python3-venv -y 
+```
 
 ### 3. Создание виртуального окружения
 
 Для **Linux** выполните следующую команду:
 ```bash 
-bash setup_venv.sh ```
+bash setup_venv.sh 
+```
 Для **Windows** запустите файл **setup_venv.bat**
 
 ### 4. Запуск бота
 
 Для **Linux** выполните следующую команду:
 ```bash 
-bash start.sh ```
+bash start.sh 
+```
 Для **Windows** запустите файл **start.bat**
 
 ### 5. Доступ к веб-интерфейсу
@@ -49,10 +52,12 @@ bash start.sh ```
 
 Для **Linux** выполните следующую команду:
 ```bash 
-sudo apt install ffmpeg ```
+sudo apt install ffmpeg 
+```
 Далее введите:
 ```bash 
-which ffmpeg ```
+which ffmpeg 
+```
 Полученный путь вставьте в конфиг
 
 Для **Windows** установите FFmpeg с [официального сайта](https://www.ffmpeg.org/download.html)
