@@ -1,0 +1,14 @@
+{
+    "token": "",
+    "prefix": "!",
+    "ffmpeg_path": "/usr/bin/ffmpeg",
+    "create_channel_category": "",
+    "max_create_channel": "10",
+    "start_rep": "0",
+    "guild_id": "",
+    "role_id": "",
+    "success_icon": "https://cdn-icons-png.flaticon.com/512/148/148767.png",
+    "error_icon": "https://www.freeiconspng.com/img/25243",
+    "info_icon": "https://wiki.octave.org/wiki/images/thumb/a/ae/Info_icon.svg/256px-Info_icon.svg.png",
+    "warn_icon": "https://static.vecteezy.com/system/resources/thumbnails/012/042/292/small_2x/warning-sign-icon-transparent-background-free-png.png"
+}
