@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Bot Panel</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  </head>
+  <body>
+    <div class="container">
+      <div class="theme-switcher">
+        <button id="theme-toggle"><i class="fas fa-moon"></i></button>
+        <button id="language-toggle">EN</button>
+      </div>
+      <h2>Панель управления ботом</h2>
+      <div class="button-container">
+        <button onclick="location.href='/start'" class="btn-primary">Запустить</button>
+        <button onclick="location.href='/stop'" class="btn-danger">Выключить</button>
+      </div>
+      <div class="bot-status">
+        <h3>Состояние бота: {{ "Запущен" if bot_running else "Остановлен" }}</h3>
+      </div>
+      <div class="settings">
+        <h2>Настройки</h2>
+        <form action="/update_config" method="post">
+          <label for="token">Токен:</label>
+          <input type="text" id="token" name="token" value="{{ config['token'] }}">
+
+          <label for="prefix">Префикс:</label>
+          <input type="text" id="prefix" name="prefix" value="{{ config['prefix'] }}">
+
+          <label for="ffmpeg_path">Путь до FFmpeg:</label>
+          <input type="text" id="ffmpeg_path" name="ffmpeg_path" value="{{ config['ffmpeg_path'] }}">
+
+          <label for="create_channel_category">ID категории для пользовательских комнат:</label>
+          <input type="number" id="create_channel_category" name="create_channel_category" value="{{ config['create_channel_category'] }}">
+
+          <label for="max_create_channel">Максимальное значение созданных комнат:</label>
+          <input type="number" id="max_create_channel" name="max_create_channel" value="{{ config['max_create_channel'] }}">
+
+          <label for="start_rep">Начальная репутация:</label>
+          <input type="number" id="start_rep" name="start_rep" value="{{ config['start_rep'] }}">
+
+          <label for="count_message_for_rep">Количество сообщений для репутации:</label>
+          <input type="number" id="count_message_for_rep" name="count_message_for_rep" value="{{ config['count_message_for_rep'] }}">
+
+          <label for="guild_id">ID сервера:</label>
+          <input type="number" id="guild_id" name="guild_id" value="{{ config['guild_id'] }}">
+
+          <label for="role_id">ID автоматической роли при входе участника:</label>
+          <input type="number" id="role_id" name="role_id" value="{{ config['role_id'] }}">
+          
+          <label for="muted_role_id">ID роли для мута:</label>
+          <input type="number" id="muted_role_id" name="muted_role_id" value="{{ config['muted_role_id'] }}">
+          
+          <label for="success_color">Цвет успешного выполнения (hex):</label>
+          <input type="text" id="success_color" name="success_color" value="{{ config['success_color'] }}">
+
+          <label for="error_color">Цвет ошибки (hex):</label>
+          <input type="text" id="error_color" name="error_color" value="{{ config['error_color'] }}">
+
+          <label for="info_color">Цвет информации (hex):</label>
+          <input type="text" id="info_color" name="info_color" value="{{ config['info_color'] }}">
+
+          <label for="warn_color">Цвет предупреждения (hex):</label>
+          <input type="text" id="warn_color" name="warn_color" value="{{ config['warn_color'] }}">
+
+          <label for="success_icon">Ссылка на иконку успешного выполнения (<img src="{{ config['success_icon'] }}" width="20" height="20">):</label>
+          <input type="text" id="success_icon" name="success_icon" value="{{ config['success_icon'] }}">
+
+          <label for="error_icon">Ссылка на иконку ошибки при выполнении (<img src="{{ config['error_icon'] }}" width="20" height="20">):</label>
+          <input type="text" id="error_icon" name="error_icon" value="{{ config['error_icon'] }}">
+
+          <label for="info_icon">Ссылка на иконку вывода информации (<img src="{{ config['info_icon'] }}" width="20" height="20">):</label>
+          <input type="text" id="info_icon" name="info_icon" value="{{ config['info_icon'] }}">
+
+          <label for="warn_icon">Ссылка на иконку предупреждения при выполнении (<img src="{{ config['warn_icon'] }}" width="20" height="20">):</label>
+          <input type="text" id="warn_icon" name="warn_icon" value="{{ config['warn_icon'] }}">
+
+          <button type="submit" class="btn-primary">Сохранить</button>
+        </form>
+      </div>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+  </body>
+</html>
