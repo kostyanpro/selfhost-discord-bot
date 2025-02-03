@@ -24,39 +24,34 @@ class Utility(commands.Cog):
         embed.set_thumbnail(url=config["info_icon"])
         await ctx.message.reply(embed=embed)
 
-    @commands.command(name='roll')
-    async def roll(self, ctx, limit='100'):
-        if limit.isdigit():
-            if int(limit) > 1000000000:
-                embed = discord.Embed(title="Ошибка", description='Слишком большое число.', color=int(config["error_color"], 16))
-                embed.set_thumbnail(url=config["error_icon"])
-                await ctx.message.reply(embed=embed)
-                return
-            embed = discord.Embed(title=f"Случайное число (0-{limit}):", description=f'**{random.randint(0, int(limit))}**', color=int(config["success_color"],16))
-            embed.set_thumbnail(url=config["success_icon"])
-            await ctx.message.reply(embed=embed)
-        else:
-            embed = discord.Embed(title="Ошибка", description='Некорректное число.', color=int(config["error_color"], 16))
-            embed.set_thumbnail(url=config["error_icon"])
-            await ctx.message.reply(embed=embed)
-
     @commands.command(name='help')
-    async def help(self, ctx):
-        embed = discord.Embed(title="Список команд", color=int(config["info_color"], 16))
+    async def help(self, ctx, page: int = 1):
+        embed = discord.Embed(title=f"Список команд {page}/2", color=int(config["info_color"], 16))
         embed.set_thumbnail(url=config["info_icon"])
-        embed.add_field(name="!ping", value="Проверка задержки бота", inline=False)
-        embed.add_field(name="!roll [лимит]", value="Случайное число от 0 до указанного числа", inline=False)
-        embed.add_field(name="!play [ссылка на YT/запрос]", value="Включает музыку с указанного видео, либо с запроса", inline=False)
-        embed.add_field(name="!skip", value="Пропуск текущего трека", inline=False)
-        embed.add_field(name="!stop", value="Остановка воспроизведения", inline=False)
-        embed.add_field(name="!queue", value="Показывает текущую очередь", inline=False)
-        embed.add_field(name="!voice [текст]", value="Озвучка текста", inline=False)
-        embed.add_field(name="!createroom [лимит] [название]", value="Создает новый голосовой канал с заданным названием и лимитом по пользователям. Канал будет удален через 5 минут отсутствия людей.", inline=False)
-        embed.add_field(name="!repinfo [@пользователь]", value="Информация о репутации", inline=False)
-        embed.add_field(name="!reptop", value="Топ 10 пользователей по репутации", inline=False)
-        embed.add_field(name="!info [@Пользователь]", value="Выводит информацию о пользователе", inline=False)
-        embed.add_field(name="!serverinfo", value="Выводит информацию о сервере", inline=False)
-        embed.add_field(name="!help+", value="Список команд с повышенными правами", inline=False)
+        if page == 1:
+            embed.add_field(name="!ping", value="Проверка задержки бота", inline=False)
+            embed.add_field(name="!roll [Кол-во сторон кубика]", value="Бросает кубик с указанным количеством сторон", inline=False)
+            embed.add_field(name="!play [Ссылка на YT / Запрос]", value="Включает музыку с указанного видео, либо с запроса", inline=False)
+            embed.add_field(name="!skip", value="Пропуск текущего трека", inline=False)
+            embed.add_field(name="!stop", value="Остановка воспроизведения", inline=False)
+            embed.add_field(name="!queue", value="Показывает текущую очередь", inline=False)
+            embed.add_field(name="!voice [Текст]", value="Озвучка текста", inline=False)
+            embed.add_field(name="!createroom [Лимит] [Название]", value="Создает новый голосовой канал с заданным названием и лимитом по пользователям. Канал будет удален через 5 минут отсутствия людей.", inline=False)
+            embed.add_field(name="!repinfo [@Пользователь]", value="Информация о репутации", inline=False)
+            embed.add_field(name="!reptop", value="Топ 10 пользователей по репутации", inline=False)
+        elif page == 2:
+            embed.add_field(name="!info [@Пользователь]", value="Выводит информацию о пользователе", inline=False)
+            embed.add_field(name="!serverinfo", value="Выводит информацию о сервере", inline=False)
+            embed.add_field(name="!meme", value="Отправляет случайный мем из интернета", inline=False)
+            embed.add_field(name="!joke", value="Отправляет случайную шутку", inline=False)
+            embed.add_field(name="!cat", value="Отправляет случайное изображение кота", inline=False)
+            embed.add_field(name="!dog", value="Отправляет случайное изображение собаки ", inline=False)
+            embed.add_field(name="!8ball [Ваш вопрос]", value="Отвечает на вопрос случайным предсказанием", inline=False)
+            embed.add_field(name="!avatar [@Пользователь]", value="Показывает аватар пользователя", inline=False)
+            embed.add_field(name="!hug [@Пользователь]", value="Отправляет \"обнимашку\" другому пользователю", inline=False)
+            embed.add_field(name="!poll [вопрос] | [вариант1] | [вариант2]", value="Создает опрос с указанным вопросом и вариантами ответа", inline=False)
+            embed.add_field(name="!compliment [@Пользователь]", value="Отправляет случайный комплимент пользователю", inline=False)
+            embed.add_field(name="!help+", value="Список команд с повышенными правами", inline=False)
         message = await ctx.message.reply(embed=embed)
         await asyncio.sleep(180)
         await message.delete()
@@ -86,19 +81,6 @@ class Utility(commands.Cog):
         await asyncio.sleep(180)
         await message.delete()
         
-    @commands.command(name='info')
-    async def info(self, ctx, member: discord.Member):
-        embed = discord.Embed(
-            title=f"Информация о {member.name}",
-            color=int(config["info_color"], 16)
-        )
-        embed.set_thumbnail(url=member.avatar.url)
-        embed.add_field(name="ID", value=member.id, inline=False)
-        embed.add_field(name="Статус", value=member.status, inline=False)
-        embed.add_field(name="Присоединился", value=member.joined_at.strftime("%d.%m.%Y %H:%M:%S"), inline=False)
-        embed.add_field(name="Роли", value=", ".join([role.name for role in member.roles if role.name != "@everyone"]), inline=False)
-        await ctx.message.reply(embed=embed)
-
     @commands.command(name='serverinfo')
     async def serverinfo(self, ctx):
         guild = ctx.guild
