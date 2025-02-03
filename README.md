@@ -112,7 +112,7 @@ which ffmpeg
 
 1. Скачайте **FFmpeg** с [официального сайта](https://www.ffmpeg.org/download.html).
 2. Распакуйте архив.
-3. Укажите путь до **FFmpeg.exe **в конфиге.
+3. Укажите путь до **FFmpeg.exe** в конфиге.
 
 ---
 
