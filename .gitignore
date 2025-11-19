@@ -1,0 +1,7 @@
+**/ffmpeg
+**/venv
+**/winvenv
+/cogs/__pycache__
+reputation.db
+bot.log
+cfg_main.json
