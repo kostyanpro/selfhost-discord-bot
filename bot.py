@@ -5,13 +5,6 @@ import sqlite3
 import os
 import sys
 
-# Открытие файла для записи лога
-log_file = open('bot.log', 'a', encoding='utf-8')
-
-# Перенаправление стандартного вывода и стандартной ошибки в файл
-sys.stdout = log_file
-sys.stderr = log_file
-
 # Загрузка конфига
 try:
     with open('config.json', 'r') as file:
@@ -20,6 +13,12 @@ try:
 except Exception as e:
     print(f"Ошибка загрузки конфига: {e}")
     exit()
+
+if config["debug"] != 1:
+    # Перенаправление stdout и stderr в файл
+    log_file = open('bot.log', 'a', encoding='utf-8')
+    sys.stdout = log_file
+    sys.stderr = log_file
 
 # Настройки бота
 intents = discord.Intents.default()

@@ -10,7 +10,7 @@ echo "activate venv..."
 source linuxvenv/bin/activate
 
 echo "installing libs from requirements.txt..."
-pip install -r requirements.txt -U
+pip install --upgrade -r requirements.txt
 
 deactivate
 

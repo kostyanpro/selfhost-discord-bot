@@ -12,7 +12,7 @@ echo activate venv...
 call winvenv\Scripts\activate.bat
 
 echo installing libs from requirements.txt...
-pip install -r requirements.txt -U
+pip install --upgrade -r requirements.txt
 
 deactivate
 
