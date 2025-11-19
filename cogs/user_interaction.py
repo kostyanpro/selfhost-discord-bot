@@ -1,3 +1,9 @@
+'''
+
+cogs/user_interaction.py
+
+'''
+
 import discord
 from discord.ext import commands
 import random
@@ -5,13 +11,14 @@ import json
 import asyncio
 import sys
 
-# Перенаправление stdout и stderr в файл
-log_file = open('bot.log', 'a', encoding='utf-8')
-sys.stdout = log_file
-sys.stderr = log_file
-
 with open('config.json', 'r') as file:
     config = json.load(file)
+
+if config["debug"] != 1:
+    # Перенаправление stdout и stderr в файл
+    log_file = open('bot.log', 'a', encoding='utf-8')
+    sys.stdout = log_file
+    sys.stderr = log_file
 
 class UserInteractionCommands(commands.Cog):
     def __init__(self, bot):
