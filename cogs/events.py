@@ -2,10 +2,6 @@
 
 cogs/event.py
 
-async def on_ready()
-async def on_member_join()
-async def on_message()
-
 '''
 
 import discord
@@ -18,7 +14,6 @@ with open('config.json', 'r') as file:
     config = json.load(file)
 
 if config["debug"] != 1:
-    # Перенаправление stdout и stderr в файл
     log_file = open('bot.log', 'a', encoding='utf-8')
     sys.stdout = log_file
     sys.stderr = log_file

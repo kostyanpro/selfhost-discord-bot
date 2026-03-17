@@ -5,6 +5,7 @@ cogs/utility.py
 '''
 
 import discord
+from discord import app_commands
 import random
 import json
 import asyncio
@@ -15,7 +16,6 @@ with open('config.json', 'r') as file:
     config = json.load(file)
 
 if config["debug"] != 1:
-    # Перенаправление stdout и stderr в файл
     log_file = open('bot.log', 'a', encoding='utf-8')
     sys.stdout = log_file
     sys.stderr = log_file
@@ -24,14 +24,15 @@ class Utility(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name='ping')
+    @commands.hybrid_command(name='ping', description='Пинг')
     async def ping(self, ctx):
         latency = round(self.bot.latency * 1000)
         embed = discord.Embed(title="Понг!", description=f"Задержка: `{latency} мс`", color=int(config["info_color"], 16))
         embed.set_thumbnail(url=config["info_icon"])
-        await ctx.message.reply(embed=embed)
+        await ctx.send(embed=embed)
 
-    @commands.command(name='help')
+    @commands.hybrid_command(name='help', description='Список команд')
+    @app_commands.describe(page="Страница")
     async def help(self, ctx, page: int = 1):
         embed = discord.Embed(title=f"Список команд {page}/2", color=int(config["info_color"], 16))
         embed.set_thumbnail(url=config["info_icon"])
@@ -59,11 +60,11 @@ class Utility(commands.Cog):
             embed.add_field(name="!poll [вопрос] | [вариант1] | [вариант2]", value="Создает опрос с указанным вопросом и вариантами ответа", inline=False)
             embed.add_field(name="!compliment [@Пользователь]", value="Отправляет случайный комплимент пользователю", inline=False)
             embed.add_field(name="!help+", value="Список команд с повышенными правами", inline=False)
-        message = await ctx.message.reply(embed=embed)
+        message = await ctx.send(embed=embed)
         await asyncio.sleep(180)
         await message.delete()
 
-    @commands.command(name='help+')
+    @commands.hybrid_command(name='helpplus', description='Список команд с повышенными правами')
     async def helpp(self, ctx):
         embed = discord.Embed(title="Список команд с повышенными правами", color=int(config["info_color"], 16))
         embed.set_thumbnail(url=config["info_icon"])
@@ -84,11 +85,11 @@ class Utility(commands.Cog):
         embed.add_field(name="!deleteallroom", value="Очистка всех созданных голосовых каналов", inline=False)
         embed.add_field(name="!deleteroom [ID канала]", value="Удаление пользовательского голосового канала", inline=False)
         embed.add_field(name="!resetdbrep", value="Сброс базы данных репутации", inline=False)
-        message = await ctx.message.reply(embed=embed)
+        message = await ctx.send(embed=embed)
         await asyncio.sleep(180)
         await message.delete()
         
-    @commands.command(name='serverinfo')
+    @commands.hybrid_command(name='serverinfo', description='Информация о сервере')
     async def serverinfo(self, ctx):
         guild = ctx.guild
         embed = discord.Embed(
@@ -100,7 +101,7 @@ class Utility(commands.Cog):
         embed.add_field(name="Участники", value=guild.member_count, inline=False)
         embed.add_field(name="Каналы", value=f"Текстовые: {len(guild.text_channels)}\nГолосовые: {len(guild.voice_channels)}", inline=False)
         embed.add_field(name="Создан", value=guild.created_at.strftime("%d.%m.%Y %H:%M:%S"), inline=False)
-        await ctx.message.reply(embed=embed)
+        await ctx.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(Utility(bot))

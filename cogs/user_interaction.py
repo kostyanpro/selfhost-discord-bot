@@ -6,6 +6,7 @@ cogs/user_interaction.py
 
 import discord
 from discord.ext import commands
+from discord import app_commands
 import random
 import json
 import asyncio
@@ -15,7 +16,6 @@ with open('config.json', 'r') as file:
     config = json.load(file)
 
 if config["debug"] != 1:
-    # Перенаправление stdout и stderr в файл
     log_file = open('bot.log', 'a', encoding='utf-8')
     sys.stdout = log_file
     sys.stderr = log_file
@@ -24,7 +24,8 @@ class UserInteractionCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name='info')
+    @commands.hybrid_command(name='info', description='Информация о пользователе')
+    @app_commands.describe(member="@Пользователь")
     async def info(self, ctx, member: discord.Member):
         embed = discord.Embed(
             title=f"Информация о {member.name}",
@@ -35,9 +36,10 @@ class UserInteractionCommands(commands.Cog):
         embed.add_field(name="Статус", value=member.status, inline=False)
         embed.add_field(name="Присоединился", value=member.joined_at.strftime("%d.%m.%Y %H:%M:%S"), inline=False)
         embed.add_field(name="Роли", value=", ".join([role.name for role in member.roles if role.name != "@everyone"]), inline=False)
-        await ctx.message.reply(embed=embed)
+        await ctx.send(embed=embed)
 
-    @commands.command(name='avatar')
+    @commands.hybrid_command(name='avatar', description='Аватар пользователя')
+    @app_commands.describe(member="@Пользователь")
     async def avatar(self, ctx, member: discord.Member = None):
         member = member or ctx.author
         avatar_url = member.avatar.url
@@ -46,9 +48,10 @@ class UserInteractionCommands(commands.Cog):
             color=int(config["info_color"], 16)
         )
         embed.set_image(url=avatar_url)
-        await ctx.message.reply(embed=embed)
+        await ctx.send(embed=embed)
 
-    @commands.command(name='hug')
+    @commands.hybrid_command(name='hug', description='Отправить обнимашки пользователю')
+    @app_commands.describe(member="@Пользователь")
     async def hug(self, ctx, member: discord.Member):
         hug_gifs = [
             "https://media.giphy.com/media/od5H3PmEG5EVq/giphy.gif",
@@ -63,9 +66,11 @@ class UserInteractionCommands(commands.Cog):
             color=int(config["info_color"], 16)
         )
         embed.set_image(url=hug_gif)
-        await ctx.message.reply(embed=embed)
+        await ctx.send(embed=embed)
 
-    @commands.command(name='poll')
+
+    @commands.hybrid_command(name='poll', description='Создает голосование на 5 минут')
+    @app_commands.describe(question="[ВОПРОС] | [1 ВАРИАНТ ОТВЕТА] | [2 ВАРИАНТ ОТВЕТА] ... | [N ВАРИАНТ ОТВЕТА]")
     async def poll(self, ctx, *, question: str):
         parts = question.split("|")
         if len(parts) < 3:
@@ -75,7 +80,7 @@ class UserInteractionCommands(commands.Cog):
                 color=int(config["error_color"], 16)
             )
             embed.set_thumbnail(url=config["error_icon"])
-            await ctx.message.reply(embed=embed)
+            await ctx.send(embed=embed)
             return
 
         poll_question = parts[0].strip()
@@ -91,7 +96,7 @@ class UserInteractionCommands(commands.Cog):
             color=int(config["info_color"], 16)
         )
         embed.set_thumbnail(url=config["info_icon"])
-        poll_message = await ctx.message.reply(embed=embed)
+        poll_message = await ctx.send(embed=embed)
 
         for i in range(len(options)):
             await poll_message.add_reaction(f"{i + 1}\u20e3")
@@ -126,7 +131,8 @@ class UserInteractionCommands(commands.Cog):
         embed.set_thumbnail(url=config["info_icon"])
         await poll_message.edit(embed=embed)
 
-    @commands.command(name='compliment')
+    @commands.hybrid_command(name='compliment', description='Отправить комплимент пользователю')
+    @app_commands.describe(member="@Пользователь")
     async def compliment(self, ctx, member: discord.Member):
         compliments = [
             "Ты выглядишь потрясающе сегодня!",
@@ -147,7 +153,7 @@ class UserInteractionCommands(commands.Cog):
             color=int(config["success_color"], 16)
         )
         embed.set_thumbnail(url=config["success_icon"])
-        await ctx.message.reply(embed=embed)
+        await ctx.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(UserInteractionCommands(bot))

@@ -6,6 +6,7 @@ cogs/voice.py
 
 import discord
 from discord.ext import commands
+from discord import app_commands
 from gtts import gTTS
 import os
 import json
@@ -15,7 +16,6 @@ with open('config.json', 'r') as file:
     config = json.load(file)
 
 if config["debug"] != 1:
-    # Перенаправление stdout и stderr в файл
     log_file = open('bot.log', 'a', encoding='utf-8')
     sys.stdout = log_file
     sys.stderr = log_file
@@ -27,18 +27,19 @@ class Voice(commands.Cog):
             'options': '-vn'
         }
 
-    @commands.command(name='voice')
+    @commands.hybrid_command(name='voice', description='Озвучить текст')
+    @app_commands.describe(text="Текст")
     async def voice(self, ctx, *, text: str):
         if not ctx.author.voice or not ctx.author.voice.channel:
             embed = discord.Embed(title="Ошибка", description='Вы не в голосовом канале!', color=int(config["error_color"], 16))
             embed.set_thumbnail(url=config["error_icon"])
-            await ctx.message.reply(embed=embed)
+            await ctx.send(embed=embed)
             return
 
         if len(text) > 500:
             embed = discord.Embed(title="Ошибка", description='Слишком много символов.', color=int(config["error_color"], 16))
             embed.set_thumbnail(url=config["error_icon"])
-            await ctx.message.reply(embed=embed)
+            await ctx.send(embed=embed)
             return
 
         try:
@@ -47,7 +48,7 @@ class Voice(commands.Cog):
         except Exception as e:
             embed = discord.Embed(title="Ошибка", description=f'Ошибка при создании аудиофайла: {e}', color=int(config["error_color"], 16))
             embed.set_thumbnail(url=config["error_icon"])
-            await ctx.message.reply(embed=embed)
+            await ctx.send(embed=embed)
             return
 
         voice_client = ctx.voice_client
@@ -57,13 +58,13 @@ class Voice(commands.Cog):
             except Exception as e:
                 embed = discord.Embed(title="Ошибка", description=f'Не удалось подключиться к каналу: {e}', color=int(config["error_color"], 16))
                 embed.set_thumbnail(url=config["error_icon"])
-                await ctx.message.reply(embed=embed)
+                await ctx.send(embed=embed)
                 return
 
         #voice_client.play(discord.FFmpegPCMAudio(source='output.mp3', executable=config["ffmpeg_path"]), )
         embed = discord.Embed(title="Озвучка текста", description=text, color=int(config["info_color"], 16))
         embed.set_thumbnail(url=config["info_icon"])
-        await ctx.message.reply(embed=embed)
+        await ctx.send(embed=embed)
 
         def after_playing(error):
             if error:

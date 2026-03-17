@@ -9,13 +9,13 @@ import os
 import sqlite3
 import json
 from discord.ext import commands
+from discord import app_commands
 import sys
 
 with open('config.json', 'r') as file:
     config = json.load(file)
 
 if config["debug"] != 1:
-    # Перенаправление stdout и stderr в файл
     log_file = open('bot.log', 'a', encoding='utf-8')
     sys.stdout = log_file
     sys.stderr = log_file
@@ -26,7 +26,8 @@ class Reputation(commands.Cog):
         self.conn = sqlite3.connect('reputation.db')
         self.cursor = self.conn.cursor()
 
-    @commands.command(name='repinfo')
+    @commands.hybrid_command(name='repinfo', description='Информация о репутации')
+    @app_commands.describe(user="@Пользователь")
     async def repinfo(self, ctx, user: discord.User = None):
         if user is None:
             user = ctx.author
@@ -37,21 +38,21 @@ class Reputation(commands.Cog):
             reputation = result[0]
             embed = discord.Embed(title=f"Репутация пользователя {user.name}", description=f"Репутация: {reputation}", color=int(config["info_color"], 16))
             embed.set_thumbnail(url=config["info_icon"])
-            await ctx.message.reply(embed=embed)
+            await ctx.send(embed=embed)
         else:
-            embed = discord.Embed(title="Ошибка", description=f"{user.mention} еще не начисляли репутацию.", color=int(config["error_color"], 16))
+            embed = discord.Embed(title="Ошибка", description=f"{user.mention} еще не начисляли репутацию", color=int(config["error_color"], 16))
             embed.set_thumbnail(url=config["error_icon"])
-            await ctx.message.reply(embed=embed)
+            await ctx.send(embed=embed)
 
-    @commands.command(name='reptop')
+    @commands.hybrid_command(name='reptop', description='Топ 10 пользователей по репутации')
     async def reptop(self, ctx):
         self.cursor.execute('SELECT user_id, reputation FROM reputation ORDER BY reputation DESC LIMIT 10')
         top_users = self.cursor.fetchall()
 
         if not top_users:
-            embed = discord.Embed(title="Ошибка", description="Топ пользователей по репутации пуст.", color=int(config["error_color"], 16))
+            embed = discord.Embed(title="Ошибка", description="Топ пользователей по репутации пуст", color=int(config["error_color"], 16))
             embed.set_thumbnail(url=config["error_icon"])
-            await ctx.message.reply(embed=embed)
+            await ctx.send(embed=embed)
             return
 
         embed = discord.Embed(title="Топ 10 пользователей по репутации", color=int(config["success_color"],16))
@@ -66,13 +67,13 @@ class Reputation(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @commands.command(name='resetdbrep')
+    @commands.hybrid_command(name='resetdbrep', description='Сброс базы данных репутации')
     @commands.has_permissions(administrator=True)
     async def resetdbrep(self, ctx):
         try:
             self.cursor.execute('DELETE FROM reputation')
             self.conn.commit()
-            print("Все записи из таблицы reputation удалены.")
+            print("Все записи из таблицы reputation удалены")
 
             self.cursor.execute('DELETE FROM message_counts')
             self.conn.commit()
@@ -91,26 +92,26 @@ class Reputation(commands.Cog):
                 )
             ''')
             self.conn.commit()
-            print("Таблицы reputation и message_counts созданы заново.")
+            print("Таблицы reputation и message_counts созданы заново")
 
             embed = discord.Embed(title="База данных репутации сброшена", color=int(config["success_color"], 16))
             embed.set_thumbnail(url=config["success_icon"])
-            await ctx.message.reply(embed=embed)
+            await ctx.send(embed=embed)
         except Exception as e:
             print(f"Ошибка при сбросе базы данных: {e}")
             embed = discord.Embed(title="Ошибка", description="Не удалось сбросить базу данных.", color=int(config["error_color"], 16))
             embed.set_thumbnail(url=config["error_icon"])
-            await ctx.message.reply(embed=embed)
+            await ctx.send(embed=embed)
     @resetdbrep.error
     async def resetdbrep_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
             embed = discord.Embed(
                 title="Ошибка",
-                description='У вас нет прав для использования этой команды.',
+                description='У вас нет прав для использования этой команды',
                 color=int(config["error_color"], 16)
             )
             embed.set_thumbnail(url=config["error_icon"])
-            await ctx.message.reply(embed=embed)
+            await ctx.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(Reputation(bot))

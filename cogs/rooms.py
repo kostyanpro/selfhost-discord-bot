@@ -6,6 +6,7 @@ cogs/rooms.py
 
 import discord
 from discord.ext import commands
+from discord import app_commands
 import asyncio
 import json
 import sys
@@ -14,7 +15,6 @@ with open('config.json', 'r') as file:
     config = json.load(file)
 
 if config["debug"] != 1:
-    # Перенаправление stdout и stderr в файл
     log_file = open('bot.log', 'a', encoding='utf-8')
     sys.stdout = log_file
     sys.stderr = log_file
@@ -45,7 +45,7 @@ class Rooms(commands.Cog):
                         if asyncio.get_event_loop().time() - self.empty_channels[channel.id] >= 300:
                             try:
                                 await channel.delete()
-                                print(f"Канал {channel.name} удален.")
+                                print(f"Канал {channel.name} удален")
                                 del self.empty_channels[channel.id]
                                 self.created_channels -= 1
                             except Exception as e:
@@ -56,26 +56,27 @@ class Rooms(commands.Cog):
 
             await asyncio.sleep(60)
 
-    @commands.command(name='createroom')
+    @commands.hybrid_command(name='createroom', description='Создает новый голосовой канал с заданным названием и лимитом по пользователям')
+    @app_commands.describe(limit="Лимит пользователей", name="Название канала")
     async def createroom(self, ctx, limit: int, *, name: str):
         if self.created_channels >= int(config['max_create_channel']):
             embed = discord.Embed(
                 title="Ошибка создания",
-                description=f'Превышено максимальное количество каналов ({config["max_create_channel"]}).',
+                description=f'Превышено максимальное количество каналов ({config["max_create_channel"]})',
                 color=int(config["error_color"], 16)
             )
             embed.set_thumbnail(url=config["error_icon"])
-            await ctx.message.reply(embed=embed)
+            await ctx.send(embed=embed)
             return
 
         if limit >= 100:
             embed = discord.Embed(
                 title="Ошибка создания",
-                description='Максимальный лимит 99.',
+                description='Максимальный лимит 99',
                 color=int(config["error_color"], 16)
             )
             embed.set_thumbnail(url=config["error_icon"])
-            await ctx.message.reply(embed=embed)
+            await ctx.send(embed=embed)
             return
 
         self.created_channels += 1
@@ -90,13 +91,13 @@ class Rooms(commands.Cog):
         await guild.create_voice_channel(name=name, overwrites=overwrites, category=category, user_limit=limit)
         embed = discord.Embed(
             title="",
-            description=f'Канал "{name}" создан.',
+            description=f'Канал "{name}" создан',
             color=int(config["success_color"], 16)
         )
         embed.set_thumbnail(url=config["success_icon"])
-        await ctx.message.reply(embed=embed)
+        await ctx.send(embed=embed)
 
-    @commands.command(name='deleteallroom')
+    @commands.hybrid_command(name='deleteallroom', description='Очистка всех созданных голосовых каналов')
     @commands.has_permissions(manage_channels=True)
     async def deleteallroom(self, ctx):
         guild = ctx.guild
@@ -104,11 +105,11 @@ class Rooms(commands.Cog):
         if category is None:
             embed = discord.Embed(
                 title="Ошибка",
-                description=f'Категория {config["create_channel_category"]} не найдена.',
+                description=f'Категория {config["create_channel_category"]} не найдена',
                 color=int(config["error_color"], 16)
             )
             embed.set_thumbnail(url=config["error_icon"])
-            await ctx.message.reply(embed=embed)
+            await ctx.send(embed=embed)
             return
 
         deleted_channels = 0
@@ -121,32 +122,32 @@ class Rooms(commands.Cog):
 
         embed = discord.Embed(
             title="",
-            description=f'Удалено {deleted_channels} каналов.',
+            description=f'Удалено {deleted_channels} каналов',
             color=int(config["success_color"], 16)
         )
         embed.set_thumbnail(url=config["success_icon"])
-        await ctx.message.reply(embed=embed)
-
+        await ctx.send(embed=embed)
     @deleteallroom.error
     async def deleteallroom_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
             embed = discord.Embed(
                 title="Ошибка",
-                description='У вас нет прав для использования этой команды.',
+                description='У вас нет прав для использования этой команды',
                 color=int(config["error_color"], 16)
             )
             embed.set_thumbnail(url=config["error_icon"])
-            await ctx.message.reply(embed=embed)
+            await ctx.send(embed=embed)
         elif isinstance(error, commands.MissingRole):
             embed = discord.Embed(
                 title="Ошибка",
-                description='У вас нет необходимой роли для использования этой команды.',
+                description='У вас нет необходимой роли для использования этой команды',
                 color=int(config["error_color"], 16)
             )
             embed.set_thumbnail(url=config["error_icon"])
-            await ctx.message.reply(embed=embed)
+            await ctx.send(embed=embed)
 
-    @commands.command(name='deleteroom')
+    @commands.hybrid_command(name='deleteroom', description='Удаляет указанный голосовой канал')
+    @app_commands.describe(channel_id="ID канала")
     @commands.has_permissions(manage_channels=True)
     async def deleteroom(self, ctx, channel_id: int):
         guild = ctx.guild
@@ -155,61 +156,60 @@ class Rooms(commands.Cog):
         if channel is None:
             embed = discord.Embed(
                 title="Ошибка",
-                description='Канал с таким ID не найден.',
+                description='Канал с таким ID не найден',
                 color=int(config["error_color"], 16)
             )
             embed.set_thumbnail(url=config["error_icon"])
-            await ctx.message.reply(embed=embed)
+            await ctx.send(embed=embed)
             return
 
         if not isinstance(channel, discord.VoiceChannel):
             embed = discord.Embed(
                 title="Ошибка",
-                description='Указанный канал не является голосовым.',
+                description='Указанный канал не является голосовым',
                 color=int(config["error_color"], 16)
             )
             embed.set_thumbnail(url=config["error_icon"])
-            await ctx.message.reply(embed=embed)
+            await ctx.send(embed=embed)
             return
 
         category = channel.category
         if category.id != int(config["create_channel_category"]):
             embed = discord.Embed(
                 title="Ошибка",
-                description='Канал не является пользовательским.',
+                description='Канал не является пользовательским',
                 color=int(config["error_color"], 16)
             )
             embed.set_thumbnail(url=config["error_icon"])
-            await ctx.message.reply(embed=embed)
+            await ctx.send(embed=embed)
             return
 
         await channel.delete()
         embed = discord.Embed(
             title="",
-            description=f'Канал "{channel.name}" удален.',
+            description=f'Канал "{channel.name}" удален',
             color=int(config["success_color"], 16)
         )
         embed.set_thumbnail(url=config["success_icon"])
-        await ctx.message.reply(embed=embed)
-
+        await ctx.send(embed=embed)
     @deleteroom.error
     async def deleteroom_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
             embed = discord.Embed(
                 title="Ошибка",
-                description='У вас нет прав для использования этой команды.',
+                description='У вас нет прав для использования этой команды',
                 color=int(config["error_color"], 16)
             )
             embed.set_thumbnail(url=config["error_icon"])
-            await ctx.message.reply(embed=embed)
+            await ctx.send(embed=embed)
         elif isinstance(error, commands.BadArgument):
             embed = discord.Embed(
                 title="Ошибка",
-                description='Пожалуйста, укажите корректный ID канала.',
+                description='Пожалуйста, укажите корректный ID канала',
                 color=int(config["error_color"], 16)
             )
             embed.set_thumbnail(url=config["error_icon"])
-            await ctx.message.reply(embed=embed)
+            await ctx.send(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(Rooms(bot))
