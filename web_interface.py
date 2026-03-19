@@ -1,3 +1,4 @@
+import sys
 import time
 import os
 import subprocess
@@ -7,6 +8,47 @@ import platform
 from flask import Flask, render_template, request, redirect, url_for, Response
 
 app = Flask(__name__)
+
+DEFAULT_CONFIG = {
+    "token": "",
+    "prefix": "!",
+    "ffmpeg_path": "",
+    "create_channel_category": "",
+    "max_create_channel": "10",
+    "start_rep": "0",
+    "count_message_for_rep": "20",
+    "guild_id": "",
+    "role_id": "",
+    "muted_role_id": "",
+    "success_icon": "",
+    "error_icon": "",
+    "info_icon": "",
+    "warn_icon": "",
+    "success_color": "0x2ecc71",
+    "error_color": "0xe74c3c",
+    "info_color": "0x3498db",
+    "warn_color": "0xf1c40f",
+    "eight_ball_answers": [
+        "Бесспорно.", "Предрешено.", "Никаких сомнений.", "Определённо да.",
+        "Можешь быть уверен в этом.", "Мне кажется — «да».", "Вероятнее всего.",
+        "Хорошие перспективы.", "Знаки говорят — «да».", "Пока не ясно, попробуй снова.",
+        "Спроси позже.", "Лучше не рассказывать.", "Сейчас нельзя предсказать.",
+        "Сконцентрируйся и спроси опять.", "Даже не думай.", "Мой ответ — «нет».",
+        "По моим данным — «нет».", "Перспективы не очень хорошие.", "Весьма сомнительно."
+    ],
+    "debug": 0
+}
+
+CONFIG_PATH = 'config.json'
+
+if not os.path.exists(CONFIG_PATH):
+    try:
+        with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
+            json.dump(DEFAULT_CONFIG, f, indent=4, ensure_ascii=False)
+        print(f"Файл {CONFIG_PATH} не найден и был создан. Заполните 'token' и перезапустите бота.")
+    except Exception as e:
+        print(f"Не удалось создать конфиг: {e}")
+    sys.exit()
 
 with open('config.json', 'r') as f:
     config = json.load(f)

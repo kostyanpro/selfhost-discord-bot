@@ -13,6 +13,7 @@ call winvenv\Scripts\activate.bat
 
 echo installing libs from requirements.txt...
 pip install --upgrade -r requirements.txt
+pip install -U "discord.py[voice]"
 
 deactivate
 
