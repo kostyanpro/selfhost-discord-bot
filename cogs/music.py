@@ -37,6 +37,14 @@ class Music(commands.Cog):
             'cookiefile': 'cookie.txt',
             'nocheckcertificate': True,
             'ignoreerrors': True,
+            'source_address': '0.0.0.0',
+            'socket_timeout': 10,
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+                'Sec-Fetch-Mode': 'navigate',
+            }
         }
 
     async def fetch_track_data(self, index):
@@ -120,6 +128,12 @@ class Music(commands.Cog):
                 'url': None
             })
             added_count += 1
+            
+        if added_count > 0:
+            if not ctx.voice_client.is_playing():
+                await self.play_next(ctx)
+        else:
+            await msg.edit(content="Не удалось извлечь информацию о треках (ошибка сети или доступа).")
 
         desc = f"Добавлено треков: **{added_count}**"
         await msg.edit(embed=discord.Embed(title="Очередь обновлена", description=desc, color=int(config["info_color"], 16)))
@@ -198,6 +212,12 @@ class Music(commands.Cog):
         voice_client = ctx.voice_client
         if not voice_client or not self.queue:
             return
+        
+        if not self.queue:
+            return
+        
+        if voice_client.is_playing():
+            return
 
         if self.queue[0]['title'] == UNLOADED_TITLE:
             await self.fetch_track_data(0)
@@ -205,10 +225,13 @@ class Music(commands.Cog):
         song_data = self.queue.pop(0)
 
         if not song_data.get('url'):
-            await self.play_next(ctx)
-            return
+            await asyncio.sleep(1)
+            return await self.play_next(ctx)
 
         try:
+            if voice_client.is_playing():
+                voice_client.stop()
+
             source = discord.FFmpegOpusAudio(
                 song_data['url'],
                 executable=config.get("ffmpeg_path"),
@@ -216,6 +239,8 @@ class Music(commands.Cog):
             )
 
             def after_playing(err):
+                if err:
+                    print(f"Ошибка после проигрывания: {err}")
                 asyncio.run_coroutine_threadsafe(self.play_next(ctx, err), self.bot.loop)
 
             voice_client.play(source, after=after_playing)
