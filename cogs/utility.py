@@ -38,6 +38,7 @@ class Utility(commands.Cog):
         embed.set_thumbnail(url=config["info_icon"])
         if page == 1:
             embed.add_field(name="!ping", value="Проверка задержки бота", inline=False)
+            embed.add_field(name="!piс [Текст] *прикрепить картинку*", value="Создает мем :D", inline=False)
             embed.add_field(name="!roll [Кол-во сторон кубика]", value="Бросает кубик с указанным количеством сторон", inline=False)
             embed.add_field(name="!play [Ссылка на YT / Запрос]", value="Включает музыку с указанного видео, либо с запроса", inline=False)
             embed.add_field(name="!skip", value="Пропуск текущего трека", inline=False)
