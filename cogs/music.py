@@ -15,10 +15,7 @@ import sys
 with open('config.json', 'r') as file:
     config = json.load(file)
 
-if config["debug"] != 1:
-    log_file = open('bot.log', 'a', encoding='utf-8')
-    sys.stdout = log_file
-    sys.stderr = log_file
+UNLOADED_TITLE = "⏳ Загрузка данных..."
 
 class Music(commands.Cog):
     def __init__(self, bot):
@@ -28,6 +25,7 @@ class Music(commands.Cog):
         self.last_message = None
         self.FFMPEG_OPTIONS = {
             "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -nostdin",
+            'options': '-vn',
         }
         
         self.YDL_OPTIONS = {
@@ -36,116 +34,119 @@ class Music(commands.Cog):
             'quiet': True,
             'no_warnings': True,
             'extract_flat': False,
-            'cookiefile': 'cookie.txt', 
+            'cookiefile': 'cookie.txt',
             'nocheckcertificate': True,
-            'yandexmusic': {
-                'format': 'm4a/bestaudio/best'
-            },
+            'ignoreerrors': True,
         }
-        
-    async def extract_info(self, query: str):
-        loop = asyncio.get_event_loop()
-        
-        def extract():
-            if config['debug'] == 1:
-                debug_opts = self.YDL_OPTIONS.copy()
-                debug_opts['listformats'] = True 
-                
-                with yt_dlp.YoutubeDL(debug_opts) as ydl:
-                    try:
-                        ydl.extract_info(query if query.startswith('http') else f"ytsearch:{query}", download=False)
-                    except Exception as e:
-                        print(f"Ошибка при просмотре форматов: {e}")
 
+    async def fetch_track_data(self, index):
+        if index >= len(self.queue):
+            return
+            
+        song = self.queue[index]
+        if song['title'] != UNLOADED_TITLE:
+            return
+
+        loop = asyncio.get_event_loop()
+        def extract():
             with yt_dlp.YoutubeDL(self.YDL_OPTIONS) as ydl:
-                info = ydl.extract_info(query if query.startswith('http') else f"ytsearch:{query}", download=False)
-                if 'entries' in info:
-                    return list(info['entries'])
-                return [info]
+                return ydl.extract_info(song['webpage_url'], download=False)
+
+        try:
+            info = await loop.run_in_executor(None, extract)
+            if info:
+                raw_duration = int(info.get('duration') or 0)
+                minutes, seconds = divmod(raw_duration, 60)
+                
+                self.queue[index].update({
+                    'title': info.get('title', 'Неизвестный трек'),
+                    'uploader': info.get('uploader') or info.get('artist') or "Исполнитель не найден",
+                    'duration': f"{minutes}:{seconds:02}",
+                    'thumbnail': info.get('thumbnail'),
+                    'url': info.get('url')
+                })
+        except Exception as e:
+            print(f"Ошибка подгрузки трека {index}: {e}")
+
+    async def extract_minimize_info(self, query: str):
+        loop = asyncio.get_event_loop()
+        ydl_opts = self.YDL_OPTIONS.copy()
+        ydl_opts['extract_flat'] = 'in_playlist'
+
+        def extract():
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                return ydl.extract_info(query if query.startswith('http') else f"ytsearch:{query}", download=False)
         
         try:
             return await loop.run_in_executor(None, extract)
         except Exception as e:
-            print(f"Ошибка извлечения: {e}")
+            print(f"Ошибка быстрого извлечения: {e}")
             return None
 
-    @commands.hybrid_command(name='play', description='Включает музыку с указанного видео или по запросу')
-    @app_commands.describe(query="Ссылка/запрос")
+    @commands.hybrid_command(name='play', description='Добавляет музыку в очередь')
+    @app_commands.describe(query="Ссылка/Запрос")
     async def play(self, ctx, *, query):
-        if not ctx.author.voice or not ctx.author.voice.channel:
-            embed = discord.Embed(title="Ошибка", description='Вы не в голосовом чате.', color=int(config["error_color"], 16))
-            embed.set_thumbnail(url=config["error_icon"])
-            await ctx.ctx.send(embed=embed)
-            return
+        if not ctx.author.voice:
+            return await ctx.send("Вы не в голосовом канале!")
 
         voice_channel = ctx.author.voice.channel
-        voice_client = ctx.voice_client
+        if ctx.voice_client is None:
+            await voice_channel.connect()
+        
+        embed = discord.Embed(title="🔍 Обработка запроса...", color=int(config["info_color"], 16))
+        msg = await ctx.send(embed=embed)
 
-        if voice_client is None:
-            try:
-                voice_client = await voice_channel.connect()
-            except Exception as e:
-                embed = discord.Embed(title="Ошибка", description=f'Не удалось подключиться к каналу: {e}', color=int(config["error_color"], 16))
-                embed.set_thumbnail(url=config["error_icon"])
-                await ctx.send(embed=embed)
-                return
-        else:
-            if voice_client.channel != voice_channel:
-                embed = discord.Embed(title="Ошибка", description='Бот подключен к другому каналу.', color=int(config["error_color"], 16))
-                embed.set_thumbnail(url=config["error_icon"])
-                await ctx.send(embed=embed)
-                return
+        data = await self.extract_minimize_info(query)
+        if not data:
+            return await msg.edit(content="Ничего не найдено.")
 
-        embed = discord.Embed(title="🔍 Поиск трека...", color=int(config["info_color"], 16))
-        search_msg = await ctx.send(embed=embed)
+        added_count = 0
+        # Обработка плейлиста или одиночного видео
+        entries = data.get('entries', [data])
+        
+        for entry in entries:
+            if not entry: continue
+            
+            url = entry.get('url') or entry.get('webpage_url')
+            if not url and data.get('webpage_url'):
+                url = data.get('webpage_url')
 
-        try:
-            entries = await self.extract_info(query)
+            self.queue.append({
+                'webpage_url': url,
+                'title': UNLOADED_TITLE,
+                'uploader': "...",
+                'duration': "??:??",
+                'thumbnail': None,
+                'url': None
+            })
+            added_count += 1
 
-            if not entries:
-                error_embed = discord.Embed(
-                    title="Ошибка", 
-                    description="Ничего не найдено.", 
-                    color=int(config["error_color"], 16)
-                )
-                await search_msg.edit(embed=error_embed)
-                return
+        desc = f"Добавлено треков: **{added_count}**"
+        await msg.edit(embed=discord.Embed(title="Очередь обновлена", description=desc, color=int(config["info_color"], 16)))
 
-            added_count = 0
-            for entry in entries:
-                url = entry.get('url') or entry.get('webpage_url')
-                raw_duration = int(entry.get('duration') or 0)
-                minutes, seconds = divmod(raw_duration, 60)
-                formatted_duration = f"{minutes}:{seconds:02}"
-                uploader = entry.get('uploader') or entry.get('artist') or "Яндекс.Музыка"
-                song_data = {
-                    'url': entry.get('url') or entry.get('webpage_url'),
-                    'title': entry.get('title') or "Неизвестный трек",
-                    'duration': formatted_duration,
-                    'webpage_url': entry.get('webpage_url'),
-                    'uploader': uploader,
-                    'ctx': ctx
-                }
-                self.queue.append(song_data)
-                added_count += 1
+        if not ctx.voice_client.is_playing():
+            await self.play_next(ctx)
 
-            if added_count > 1:
-                desc = f"Добавлено **{added_count}** треков из плейлиста."
-            else:
-                desc = f"Добавлено: **{self.queue[-1]['title']}**"
+    @commands.hybrid_command(name='queue', description='Показывает очередь')
+    async def show_queue(self, ctx):
+        if not self.queue:
+            return await ctx.send("Очередь пуста.")
 
-            success_embed = discord.Embed(
-                title="Очередь обновлена", 
-                description=desc, 
-                color=int(config["info_color"], 16)
-            )
-            await search_msg.edit(embed=success_embed)
+        wait_embed = discord.Embed(title="⏳ Подгружаем информацию об очереди...", color=int(config["info_color"], 16))
+        msg = await ctx.send(embed=wait_embed)
 
-            if not ctx.voice_client.is_playing():
-                await self.play_next(ctx)
+        tasks = [self.fetch_track_data(i) for i in range(min(10, len(self.queue)))]
+        await asyncio.gather(*tasks)
 
-        except Exception as e:
-            await search_msg.edit(content=f"Произошла ошибка: {e}", embed=None)
+        queue_list = ""
+        for i, item in enumerate(self.queue[:10]):
+            queue_list += f"{i+1}. **{item['title']}** — {item['uploader']} ({item['duration']})\n"
+
+        final_embed = discord.Embed(title="Очередь воспроизведения", description=queue_list, color=int(config["info_color"], 16))
+        if len(self.queue) > 10:
+            final_embed.set_footer(text=f"И еще {len(self.queue) - 10} треков...")
+        
+        await msg.edit(embed=final_embed)
 
     @commands.hybrid_command(name='skip', description='Пропускает один или несколько треков')
     @app_commands.describe(count="Количество треков для пропуска (по умолчанию 1)")
@@ -193,97 +194,50 @@ class Music(commands.Cog):
             embed.set_thumbnail(url=config["error_icon"])
             await ctx.send(embed=embed)
 
-    @commands.hybrid_command(name='queue', description='Показывает очередь воспроизведения')
-    async def show_queue(self, ctx):
-        if not self.queue:
-            embed = discord.Embed(title="Очередь пуста", color=int(config["info_color"], 16))
-            embed.set_thumbnail(url=config["info_icon"])
-            await ctx.send(embed=embed)
-            return
-
-        upcoming = self.queue[:10]
-        
-        queue_list = ""
-        for i, item in enumerate(upcoming):
-            queue_list += f"{i+1}. **{item['title']}** - {item['uploader']} ({item['duration']})\n"
-
-        embed = discord.Embed(
-            title="Очередь воспроизведения", 
-            description=queue_list, 
-            color=int(config["info_color"], 16)
-        )
-
-        if len(self.queue) > 10:
-            embed.set_footer(text=f"И еще {len(self.queue) - 10} треков в очереди...")
-            
-        embed.set_thumbnail(url=config["info_icon"])
-        await ctx.send(embed=embed)
-
     async def play_next(self, ctx, error=None):
-        if error:
-            print(f'Ошибка воспроизведения: {error}')
-
         voice_client = ctx.voice_client
         if not voice_client or not self.queue:
-            if self.last_message:
-                try:
-                    await self.last_message.delete()
-                    self.last_message = None
-                except:
-                    pass
             return
 
-        if self.last_message:
-            try:
-                await self.last_message.delete()
-            except Exception as e:
-                print(f"Не удалось удалить старое сообщение: {e}")
+        if self.queue[0]['title'] == UNLOADED_TITLE:
+            await self.fetch_track_data(0)
 
         song_data = self.queue.pop(0)
-        
+
+        if not song_data.get('url'):
+            await self.play_next(ctx)
+            return
+
         try:
-            info = await self.extract_info(song_data['webpage_url'])
-            if isinstance(info, list):
-                info = info[0]
-                
-            stream_url = info.get('url')
             source = discord.FFmpegOpusAudio(
-                stream_url, 
-                executable=config["ffmpeg_path"], 
+                song_data['url'],
+                executable=config.get("ffmpeg_path"),
                 **self.FFMPEG_OPTIONS
             )
 
             def after_playing(err):
-                if err:
-                    print(f'Ошибка после завершения: {err}')
                 asyncio.run_coroutine_threadsafe(self.play_next(ctx, err), self.bot.loop)
 
             voice_client.play(source, after=after_playing)
 
-            thumbnail = info.get('thumbnail')
-            uploader = info.get('uploader') or info.get('artist') or "Неизвестный исполнитель"
-            
-            raw_duration = int(info.get('duration') or 0)
-            minutes, seconds = divmod(raw_duration, 60)
-            duration_str = f"{minutes}:{seconds:02}"
-
             embed = discord.Embed(
-                title=info.get("title"),
-                description=uploader,
+                title=song_data['title'],
+                description=song_data['uploader'],
                 color=int(config["info_color"], 16),
                 url=song_data["webpage_url"]
             )
-            if thumbnail:
-                embed.set_thumbnail(url=thumbnail)
-            
+            if song_data['thumbnail']:
+                embed.set_thumbnail(url=song_data['thumbnail'])
             embed.set_author(name="Сейчас играет")
-            embed.set_footer(text=f"Длительность: {duration_str}")
+            embed.set_footer(text=f"Длительность: {song_data['duration']}")
 
+            if self.last_message:
+                try: await self.last_message.delete()
+                except: pass
             self.last_message = await ctx.send(embed=embed)
-            
+
         except Exception as e:
-            print(f"Критическая ошибка: {e}")
-            await asyncio.sleep(1)
+            print(f"Ошибка запуска: {e}")
             await self.play_next(ctx)
 
 async def setup(bot):
